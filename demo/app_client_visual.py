@@ -184,6 +184,27 @@ def get_boxes_json(annotations) -> Optional[List]:
     return annotations["boxes"] if annotations["boxes"] else None
 
 
+def undo_last_box(annotations):
+    """Remove the most recently added bounding box."""
+    if not annotations:
+        return annotations, None
+
+    boxes = annotations.get("boxes", [])
+
+    if not boxes:
+        gr.Warning("There are no bounding boxes to undo.")
+        return annotations, None
+
+    updated_annotations = {
+        **annotations,
+        "boxes": boxes[:-1],
+    }
+
+    updated_boxes = updated_annotations["boxes"] or None
+
+    return updated_annotations, updated_boxes
+
+
 def format_outputs_image_search(images: List, scores: List[float], retrieved_image_paths: List[str]):
     """Format outputs for image search"""
     outputs_annotators = []
@@ -273,10 +294,32 @@ with gr.Blocks(title="VisualReF: Images Only", css=css) as demo:
                         sources=[],
                     )
                     annotators.append(annotator)
-                    button_get = gr.Button(f"Get bounding boxes for Result {i + 1}")
+
+                    with gr.Row():
+                        button_get = gr.Button(
+                            f"Get bounding boxes for Result {i + 1}"
+                        )
+                        undo_box_btn = gr.Button(
+                            "↩ Undo last box",
+                            variant = "secondary",
+                        )
                     annotator_json_boxes = gr.JSON(visible=True)
                     annotator_json_boxes_list.append(annotator_json_boxes)
-                    button_get.click(get_boxes_json, inputs=annotator, outputs=annotator_json_boxes)
+
+                    button_get.click(
+                        fn = get_boxes_json, 
+                        inputs = annotator,
+                        outputs = annotator_json_boxes,
+                    )       
+                   
+                    undo_box_btn.click(
+                        fn = undo_last_box,
+                        inputs = annotator,
+                        outputs = [
+                            annotator, 
+                            annotator_json_boxes,
+                        ],
+                    )
 
         relevant_image_paths = gr.State(value=None)
 
