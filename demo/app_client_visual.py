@@ -180,8 +180,12 @@ def update_logs_feedback(
 
 
 def get_boxes_json(annotations) -> Optional[List]:
-    """Get bounding boxes from annotator"""
-    return annotations["boxes"] if annotations["boxes"] else None
+    """Automatically extract bounding boxes from the annotator."""
+    if not annotations:
+        return None
+
+    boxes = annotations.get("boxes", [])
+    return boxes if boxes else None
 
 
 def undo_last_box(annotations):
@@ -296,21 +300,20 @@ with gr.Blocks(title="VisualReF: Images Only", css=css) as demo:
                     annotators.append(annotator)
 
                     with gr.Row():
-                        button_get = gr.Button(
-                            f"Get bounding boxes for Result {i + 1}"
-                        )
+                        
                         undo_box_btn = gr.Button(
                             "↩ Undo last box",
                             variant = "secondary",
                         )
-                    annotator_json_boxes = gr.JSON(visible=True)
+                    annotator_json_boxes = gr.JSON(visible=False)
                     annotator_json_boxes_list.append(annotator_json_boxes)
 
-                    button_get.click(
-                        fn = get_boxes_json, 
-                        inputs = annotator,
-                        outputs = annotator_json_boxes,
-                    )       
+                    annotator.change(
+                        fn=get_boxes_json,
+                        inputs=annotator,
+                        outputs=annotator_json_boxes,
+                        )
+      
                    
                     undo_box_btn.click(
                         fn = undo_last_box,
