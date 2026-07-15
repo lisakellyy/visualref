@@ -254,6 +254,21 @@ css = """
 .feedback textarea {font-size: 20px !important;}
 .server-status {background-color: #E8F5E8; padding: 10px; border-radius: 5px; margin: 10px 0;}
 .error-message {background-color: #FFE6E6; padding: 10px; border-radius: 5px; margin: 10px 0;}
+.annotator-container {
+    position: relative;
+}
+
+.undo-box-btn {
+    position: absolute !important;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+}
 """
 
 with gr.Blocks(title="VisualReF: Images Only", css=css) as demo:
@@ -288,7 +303,7 @@ with gr.Blocks(title="VisualReF: Images Only", css=css) as demo:
 
         with gr.Row():
             for i in range(image_top_k.value):
-                with gr.Column():
+                with gr.Column(scale=1, min_width=0, elem_classes=["annotator-container"],):
                     annotator = image_annotator(
                         value=None,
                         label_list=["Relevant", "Irrelevant"],
@@ -298,12 +313,11 @@ with gr.Blocks(title="VisualReF: Images Only", css=css) as demo:
                         sources=[],
                     )
                     annotators.append(annotator)
-
-                    with gr.Row():
                         
-                        undo_box_btn = gr.Button(
-                            "↩ Undo last box",
-                            variant = "secondary",
+                    undo_box_btn = gr.Button(
+                        "↩",
+                        variant = "secondary",
+                        elem_classes=["undo-box-btn"],
                         )
                     annotator_json_boxes = gr.JSON(visible=False)
                     annotator_json_boxes_list.append(annotator_json_boxes)
