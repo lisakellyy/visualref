@@ -239,14 +239,60 @@ def feedback_loop(
 
 
 def get_boxes_json(annotations):
-    """Get bounding boxes from annotator"""
-    return annotations["boxes"] if annotations["boxes"] else None
+    """Automatically extract bounding boxes from the annotator."""
+    if not annotations:
+        return None
 
+    boxes = annotations.get("boxes", [])
+    return boxes if boxes else None
+
+
+def undo_last_box(annotations):
+    """Remove the most recently added bounding box."""
+    if not annotations:
+        return annotations, None
+
+    boxes = annotations.get("boxes", [])
+
+    if not boxes:
+        gr.Warning("There are no bounding boxes to undo.")
+        return annotations, None
+
+    updated_annotations = {
+        **annotations,
+        "boxes": boxes[:-1],
+    }
+
+    updated_boxes = updated_annotations["boxes"] or None
+
+    return updated_annotations, updated_boxes
 
 css = """
-#warning {background-color: #FFCCCB} 
+#warning {background-color: #FFCCCB}
 .feedback {font-size: 20px !important;}
 .feedback textarea {font-size: 20px !important;}
+
+.annotator-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+}
+
+.annotator-container {
+    position: relative;
+    min-width: 0 !important;
+}
+
+.undo-box-btn {
+    position: absolute !important;
+    top: 10px;
+    right: 25px;
+    z-index: 1000;
+
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+}
 """
 
 with gr.Blocks(title="Multimodal Retrieval Demo", css=css) as demo:
@@ -264,14 +310,23 @@ with gr.Blocks(title="Multimodal Retrieval Demo", css=css) as demo:
         annotators = []
         annotator_json_boxes_list = []
 
+        
         with gr.Row():
             image_gallery = gr.Gallery(
-                label="Retrieved Images", columns=5, rows=1, visible=config["SHOW_IMAGE_GALLERY"]
-            )
+                label="Retrieved Images",
+                columns=5,
+                rows=1,
+                visible=False,
+                show_label=False,
+                )    
 
-        with gr.Row():
+        with gr.Row(elem_classes=["annotator-row"]):
             for i in range(image_top_k.value):
-                with gr.Column():
+                with gr.Column(
+                    scale=1,
+                    min_width=0,
+                    elem_classes=["annotator-container"],
+                    ):
                     annotator = image_annotator(
                         value=None,
                         label_list=["Relevant", "Irrelevant"],
@@ -279,13 +334,33 @@ with gr.Blocks(title="Multimodal Retrieval Demo", css=css) as demo:
                         label=f"Result {i + 1}",
                         visible=config["SHOW_ANNOTATORS"],
                         sources=[],
-                    )
+                        )
                     annotators.append(annotator)
-                    button_get = gr.Button(f"Get bounding boxes for Result {i + 1}")
-                    annotator_json_boxes = gr.JSON(visible=True)
-                    annotator_json_boxes_list.append(annotator_json_boxes)
-                    button_get.click(get_boxes_json, inputs=annotator, outputs=annotator_json_boxes)
 
+                    undo_box_btn = gr.Button(
+                        "↩",
+                        variant="secondary",
+                        elem_classes=["undo-box-btn"],
+                        )
+
+                    annotator_json_boxes = gr.JSON(visible=False)
+                    annotator_json_boxes_list.append(annotator_json_boxes)
+
+                    annotator.change(
+                        fn=get_boxes_json,
+                        inputs=annotator,
+                        outputs=annotator_json_boxes,
+                        )
+
+                    undo_box_btn.click(
+                        fn=undo_last_box,
+                        inputs=annotator,
+                        outputs=[
+                            annotator,
+                            annotator_json_boxes,
+                            ],
+                            )
+                    
         def format_outputs_image_search(images, scores, retrieved_image_paths):
             outputs_annotators = []
             outputs_gallery = []
