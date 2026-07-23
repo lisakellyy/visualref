@@ -336,6 +336,9 @@ with gr.Blocks(title="Multimodal Retrieval Demo", css=css) as demo:
                         label=f"Result {i + 1}",
                         visible=config["SHOW_ANNOTATORS"],
                         sources=[],
+                        show_remove_button=True,
+                        show_clear_button=False,
+                        show_download_button=False
                         )
                     annotators.append(annotator)
 
