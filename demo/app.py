@@ -258,9 +258,11 @@ def undo_last_box(annotations):
         gr.Warning("There are no bounding boxes to undo.")
         return annotations, None
 
+    boxes.pop(0) # remove most recent
+
     updated_annotations = {
         **annotations,
-        "boxes": boxes[:-1],
+        "boxes": boxes,
     }
 
     updated_boxes = updated_annotations["boxes"] or None
